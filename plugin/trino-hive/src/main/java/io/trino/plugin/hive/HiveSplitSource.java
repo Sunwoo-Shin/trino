@@ -77,7 +77,7 @@ class HiveSplitSource
     private final AtomicInteger remainingInitialSplits;
     private final AtomicLong numberOfProcessedSplits;
 
-    private final HiveSplitLoader splitLoader;
+    private final AtomicReference<HiveSplitLoader> splitLoaderReference;
     private final AtomicReference<State> stateReference;
 
     private final AtomicLong estimatedSplitSizeInBytes = new AtomicLong();
@@ -107,7 +107,7 @@ class HiveSplitSource
         this.tableName = requireNonNull(tableName, "tableName is null");
         this.queues = requireNonNull(queues, "queues is null");
         this.maxOutstandingSplitsBytes = maxOutstandingSplitsSize.toBytes();
-        this.splitLoader = requireNonNull(splitLoader, "splitLoader is null");
+        this.splitLoaderReference = new AtomicReference<>(requireNonNull(splitLoader, "splitLoader is null"));
         this.stateReference = requireNonNull(stateReference, "stateReference is null");
         this.highMemorySplitSourceCounter = requireNonNull(highMemorySplitSourceCounter, "highMemorySplitSourceCounter is null");
 
@@ -220,7 +220,10 @@ class HiveSplitSource
             // Stop the split loader before finishing the queue.
             // Once the queue is finished, it will always return a completed future to avoid blocking any caller.
             // This could lead to a short period of busy loop in splitLoader (although unlikely in general setup).
-            splitLoader.stop();
+            HiveSplitLoader splitLoader = splitLoaderReference.getAndSet(null);
+            if (splitLoader != null) {
+                splitLoader.stop();
+            }
             queues.finish();
         }
     }
@@ -234,7 +237,10 @@ class HiveSplitSource
             // Stop the split loader before finishing the queue.
             // Once the queue is finished, it will always return a completed future to avoid blocking any caller.
             // This could lead to a short period of busy loop in splitLoader (although unlikely in general setup).
-            splitLoader.stop();
+            HiveSplitLoader splitLoader = splitLoaderReference.getAndSet(null);
+            if (splitLoader != null) {
+                splitLoader.stop();
+            }
             queues.finish();
         }
     }
@@ -402,7 +408,10 @@ class HiveSplitSource
             // Stop the split loader before finishing the queue.
             // Once the queue is finished, it will always return a completed future to avoid blocking any caller.
             // This could lead to a short period of busy loop in splitLoader (although unlikely in general setup).
-            splitLoader.stop();
+            HiveSplitLoader splitLoader = splitLoaderReference.getAndSet(null);
+            if (splitLoader != null) {
+                splitLoader.stop();
+            }
             queues.finish();
         }
     }
